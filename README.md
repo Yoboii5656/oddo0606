@@ -1,7 +1,7 @@
 
 A full-stack procurement and vendor management platform built for organizations to streamline their entire purchasing workflow — from requesting quotations to generating invoices.
 
-**Live Demo:** [https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/](https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/)
+**Live Demo:** [https://oddo0606.vercel.app/](https://oddo0606.vercel.app/)
 ---
 ## Demo Credentials
 
