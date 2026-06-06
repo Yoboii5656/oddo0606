@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/authStore'
+import type { UserRole } from '@/types/database'
 import {
   LayoutDashboard,
   Users,
@@ -13,21 +15,34 @@ import {
   Activity,
   BarChart3,
   Building2,
+  ClipboardList,
 } from 'lucide-react'
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Vendors', href: '/dashboard/vendors', icon: Building2 },
-  { name: 'RFQs', href: '/dashboard/rfqs', icon: FileText },
-  { name: 'Approvals', href: '/dashboard/approvals', icon: CheckCircle },
-  { name: 'Purchase Orders', href: '/dashboard/purchase-orders', icon: ShoppingCart },
-  { name: 'Invoices', href: '/dashboard/invoices', icon: Receipt },
-  { name: 'Activity', href: '/dashboard/activity', icon: Activity },
-  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
+interface NavItem {
+  name: string
+  href: string
+  icon: typeof LayoutDashboard
+  roles: UserRole[] // which roles can see this item
+}
+
+const navigation: NavItem[] = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'procurement_officer', 'manager', 'vendor'] },
+  { name: 'Vendors', href: '/dashboard/vendors', icon: Building2, roles: ['admin', 'procurement_officer', 'manager'] },
+  { name: 'RFQs', href: '/dashboard/rfqs', icon: FileText, roles: ['admin', 'procurement_officer', 'manager', 'vendor'] },
+  { name: 'Quotations', href: '/dashboard/quotations', icon: ClipboardList, roles: ['admin', 'procurement_officer', 'manager', 'vendor'] },
+  { name: 'Approvals', href: '/dashboard/approvals', icon: CheckCircle, roles: ['admin', 'manager'] },
+  { name: 'Purchase Orders', href: '/dashboard/purchase-orders', icon: ShoppingCart, roles: ['admin', 'procurement_officer', 'manager'] },
+  { name: 'Invoices', href: '/dashboard/invoices', icon: Receipt, roles: ['admin', 'procurement_officer', 'manager', 'vendor'] },
+  { name: 'Activity', href: '/dashboard/activity', icon: Activity, roles: ['admin', 'manager'] },
+  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['admin', 'procurement_officer', 'manager'] },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const user = useAuthStore((s) => s.user)
+  const userRole = user?.role || 'vendor'
+
+  const visibleNavigation = navigation.filter((item) => item.roles.includes(userRole))
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
@@ -37,7 +52,7 @@ export function Sidebar() {
           <span className="ml-2 text-xl font-bold">VendorBridge</span>
         </div>
         <nav className="flex-1 px-2 space-y-1">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== '/dashboard' && pathname.startsWith(item.href))

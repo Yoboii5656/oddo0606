@@ -128,3 +128,30 @@
     @apply font-sans;
   }
 }
+
+
+/* Print styles for invoices */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide sidebar and header */
+  aside,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  /* Remove sidebar offset */
+  .md\:pl-64 {
+    padding-left: 0 !important;
+  }
+
+  /* Clean card appearance */
+  [data-slot="card"] {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+}

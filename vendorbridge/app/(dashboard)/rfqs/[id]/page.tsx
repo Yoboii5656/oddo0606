@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
+import { logActivity } from '@/lib/activity'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, Calendar, FileText } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, ShoppingCart, CheckCircle, ClipboardList, GitCompareArrows } from 'lucide-react'
 import type { RFQ, RFQItem, Quotation, Vendor } from '@/types/database'
 
 interface RFQDetail extends RFQ {
@@ -28,24 +29,70 @@ export default function RFQDetailPage() {
   const params = useParams()
   const [rfq, setRfq] = useState<RFQDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchRFQ = async () => {
-      const { data } = await supabase
-        .from('rfqs')
-        .select(`
-          *,
-          rfq_items (*),
-          quotations (*, vendors:vendor_id (*))
-        `)
-        .eq('id', params.id)
-        .single()
-
-      if (data) setRfq(data as unknown as RFQDetail)
-      setLoading(false)
-    }
     fetchRFQ()
   }, [params.id])
+
+  const fetchRFQ = async () => {
+    const { data } = await supabase
+      .from('rfqs')
+      .select(`
+        *,
+        rfq_items (*),
+        quotations (*, vendors:vendor_id (*))
+      `)
+      .eq('id', params.id)
+      .single()
+
+    if (data) setRfq(data as unknown as RFQDetail)
+    setLoading(false)
+  }
+
+  const handleAcceptQuotation = async (quotationId: string, vendorName: string) => {
+    setGenerating(quotationId)
+
+    // First create an approval record
+    const { data: approval, error: approvalError } = await supabase
+      .from('approvals')
+      .insert({
+        quotation_id: quotationId,
+        requested_by: (await supabase.auth.getUser()).data.user?.id,
+        status: 'approved',
+        actioned_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (approvalError || !approval) {
+      alert('Failed to create approval: ' + (approvalError?.message || 'Unknown error'))
+      setGenerating(null)
+      return
+    }
+
+    // Call the RPC to generate PO
+    const { data: poId, error: poError } = await supabase
+      .rpc('generate_purchase_order', { p_approval_id: approval.id })
+
+    if (poError) {
+      alert('Failed to generate PO: ' + poError.message)
+      setGenerating(null)
+      return
+    }
+
+    // Log activity
+    await logActivity(
+      'purchase_order.generated',
+      'purchase_order',
+      poId,
+      { rfq_id: rfq?.id, vendor: vendorName, quotation_id: quotationId }
+    )
+
+    alert(`Purchase Order generated successfully!`)
+    setGenerating(null)
+    fetchRFQ()
+  }
 
   if (loading) return <div className="flex items-center justify-center py-12">Loading...</div>
   if (!rfq) return <div className="flex items-center justify-center py-12">RFQ not found.</div>
@@ -64,6 +111,26 @@ export default function RFQDetailPage() {
         </div>
         <Badge>{rfq.status.replace('_', ' ')}</Badge>
       </div>
+
+      {/* Action buttons */}
+      {rfq.status === 'open' && (
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link href={`/dashboard/quotations/submit/${rfq.id}`}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Submit Quotation
+            </Link>
+          </Button>
+          {rfq.quotations && rfq.quotations.length > 1 && (
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/quotations/compare/${rfq.id}`}>
+                <GitCompareArrows className="mr-2 h-4 w-4" />
+                Compare Quotations
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -150,6 +217,7 @@ export default function RFQDetailPage() {
                   <TableHead>Delivery Days</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Submitted</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,9 +231,35 @@ export default function RFQDetailPage() {
                     </TableCell>
                     <TableCell>{q.delivery_days ? `${q.delivery_days} days` : '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{q.status}</Badge>
+                      <Badge variant={q.status === 'accepted' ? 'default' : 'secondary'}>
+                        {q.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>{format(new Date(q.submitted_at), 'dd MMM yyyy')}</TableCell>
+                    <TableCell>
+                      {q.status === 'submitted' && rfq.status !== 'approved' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptQuotation(q.id, q.vendors?.name || '')}
+                          disabled={generating === q.id}
+                        >
+                          {generating === q.id ? (
+                            'Generating...'
+                          ) : (
+                            <>
+                              <ShoppingCart className="mr-1 h-3 w-3" />
+                              Generate PO
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {q.status === 'accepted' && (
+                        <span className="flex items-center text-sm text-green-600">
+                          <CheckCircle className="mr-1 h-3 w-3" />
+                          Accepted
+                        </span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

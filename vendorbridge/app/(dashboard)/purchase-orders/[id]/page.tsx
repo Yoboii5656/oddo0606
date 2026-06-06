@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
+import { logActivity } from '@/lib/activity'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Receipt } from 'lucide-react'
 import type { PurchaseOrder } from '@/types/database'
 
 interface PODetail extends PurchaseOrder {
@@ -18,8 +19,11 @@ interface PODetail extends PurchaseOrder {
 
 export default function PurchaseOrderDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const [po, setPO] = useState<PODetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [generatingInvoice, setGeneratingInvoice] = useState(false)
+  const [hasInvoice, setHasInvoice] = useState(false)
 
   useEffect(() => {
     const fetchPO = async () => {
@@ -30,10 +34,73 @@ export default function PurchaseOrderDetailPage() {
         .single()
 
       if (data) setPO(data as unknown as PODetail)
+
+      // Check if invoice already exists for this PO
+      const { data: existingInvoice } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('po_id', params.id)
+        .maybeSingle()
+
+      if (existingInvoice) setHasInvoice(true)
       setLoading(false)
     }
     fetchPO()
   }, [params.id])
+
+  const handleGenerateInvoice = async () => {
+    if (!po) return
+    setGeneratingInvoice(true)
+
+    const subtotal = po.total_amount || 0
+    const taxPercent = 18
+    const taxAmount = Math.round(subtotal * taxPercent / 100)
+    const totalAmount = subtotal + taxAmount
+
+    // Generate invoice number
+    const { count } = await supabase
+      .from('invoices')
+      .select('*', { count: 'exact', head: true })
+
+    const invoiceNumber = `INV-${new Date().getFullYear()}-${String((count || 0) + 1).padStart(4, '0')}`
+
+    // Due date is 30 days from now
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 30)
+
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .insert({
+        invoice_number: invoiceNumber,
+        po_id: po.id,
+        vendor_id: po.vendor_id,
+        status: 'draft',
+        subtotal,
+        tax_percent: taxPercent,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        due_date: dueDate.toISOString().split('T')[0],
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert('Failed to generate invoice: ' + error.message)
+      setGeneratingInvoice(false)
+      return
+    }
+
+    // Log activity
+    await logActivity(
+      'invoice.generated',
+      'invoice',
+      invoice.id,
+      { po_number: po.po_number, vendor: po.vendors?.name, amount: totalAmount }
+    )
+
+    alert(`Invoice ${invoiceNumber} generated successfully!`)
+    router.push(`/dashboard/invoices/${invoice.id}`)
+  }
 
   if (loading) return <div className="flex items-center justify-center py-12">Loading...</div>
   if (!po) return <div className="flex items-center justify-center py-12">PO not found.</div>
@@ -52,6 +119,34 @@ export default function PurchaseOrderDetailPage() {
         </div>
         <Badge>{po.status}</Badge>
       </div>
+
+      {/* Generate Invoice Action */}
+      {po.status === 'issued' && !hasInvoice && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Ready to invoice</p>
+              <p className="text-sm text-muted-foreground">
+                Generate an invoice for this purchase order (18% GST will be applied)
+              </p>
+            </div>
+            <Button onClick={handleGenerateInvoice} disabled={generatingInvoice}>
+              <Receipt className="mr-2 h-4 w-4" />
+              {generatingInvoice ? 'Generating...' : 'Generate Invoice'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasInvoice && (
+        <Card className="border-green-500/20 bg-green-500/5">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <p className="text-sm text-green-700 dark:text-green-400">
+              ✓ Invoice has been generated for this PO
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
