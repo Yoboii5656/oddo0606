@@ -1,9 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-# VendorBridge
 
 A full-stack procurement and vendor management platform built for organizations to streamline their entire purchasing workflow — from requesting quotations to generating invoices.
 
 **Live Demo:** [https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/](https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/)
+(dummy id:admin@gmail.com, dummy password: admin123 (for testing perpous only))
 
 ---
 
