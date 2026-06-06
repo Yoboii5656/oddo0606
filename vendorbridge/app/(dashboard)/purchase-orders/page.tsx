@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,6 +21,7 @@ interface POWithVendor extends PurchaseOrder {
 }
 
 export default function PurchaseOrdersPage() {
+  const router = useRouter()
   const [orders, setOrders] = useState<POWithVendor[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -82,14 +83,13 @@ export default function PurchaseOrdersPage() {
               </TableRow>
             ) : (
               orders.map((po) => (
-                <TableRow key={po.id}>
-                  <TableCell className="font-mono text-sm">
-                    <Link
-                      href={`/dashboard/purchase-orders/${po.id}`}
-                      className="hover:underline font-medium"
-                    >
-                      {po.po_number}
-                    </Link>
+                <TableRow
+                  key={po.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                >
+                  <TableCell className="font-mono text-sm font-medium">
+                    {po.po_number}
                   </TableCell>
                   <TableCell>{po.rfqs?.title || '—'}</TableCell>
                   <TableCell>{po.vendors?.name || '—'}</TableCell>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -37,6 +38,7 @@ const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
 }
 
 export default function QuotationsPage() {
+  const router = useRouter()
   const [quotations, setQuotations] = useState<QuotationWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -111,16 +113,15 @@ export default function QuotationsPage() {
               </TableRow>
             ) : (
               filtered.map((q) => (
-                <TableRow key={q.id}>
+                <TableRow
+                  key={q.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => router.push(`/quotations/compare/${q.rfq_id}`)}
+                >
                   <TableCell>
-                    <Link
-                      href={`/dashboard/rfqs/${q.rfq_id}`}
-                      className="hover:underline text-sm"
-                    >
-                      <span className="font-mono text-xs">{q.rfqs?.rfq_number}</span>
-                      <br />
-                      <span className="text-muted-foreground">{q.rfqs?.title}</span>
-                    </Link>
+                    <span className="font-mono text-xs">{q.rfqs?.rfq_number}</span>
+                    <br />
+                    <span className="text-muted-foreground text-sm">{q.rfqs?.title}</span>
                   </TableCell>
                   <TableCell className="font-medium">{q.vendors?.name || '—'}</TableCell>
                   <TableCell>
@@ -133,10 +134,15 @@ export default function QuotationsPage() {
                   <TableCell>{format(new Date(q.submitted_at), 'dd MMM yyyy')}</TableCell>
                   <TableCell>
                     {(rfqGroups[q.rfq_id]?.length || 0) > 1 && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/quotations/compare/${q.rfq_id}`}>
-                          <GitCompareArrows className="h-4 w-4" />
-                        </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/quotations/compare/${q.rfq_id}`)
+                        }}
+                      >
+                        <GitCompareArrows className="h-4 w-4" />
                       </Button>
                     )}
                   </TableCell>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -20,6 +20,7 @@ interface InvoiceWithVendor extends Invoice {
 }
 
 export default function InvoicesPage() {
+  const router = useRouter()
   const [invoices, setInvoices] = useState<InvoiceWithVendor[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -83,14 +84,13 @@ export default function InvoicesPage() {
               </TableRow>
             ) : (
               invoices.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-mono text-sm">
-                    <Link
-                      href={`/dashboard/invoices/${inv.id}`}
-                      className="hover:underline font-medium"
-                    >
-                      {inv.invoice_number}
-                    </Link>
+                <TableRow
+                  key={inv.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => router.push(`/invoices/${inv.id}`)}
+                >
+                  <TableCell className="font-mono text-sm font-medium">
+                    {inv.invoice_number}
                   </TableCell>
                   <TableCell>{inv.vendors?.name || '—'}</TableCell>
                   <TableCell>
