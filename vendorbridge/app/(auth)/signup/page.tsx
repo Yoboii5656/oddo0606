@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2 } from 'lucide-react'
+import { Building2, MailCheck } from 'lucide-react'
 
 const signupSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -31,6 +31,7 @@ type SignupFormValues = z.infer<typeof signupSchema>
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const {
     register,
@@ -56,7 +57,7 @@ export default function SignupPage() {
           full_name: data.full_name,
           role: data.role,
         },
-        emailRedirectTo: undefined,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -73,8 +74,37 @@ export default function SignupPage() {
       return
     }
 
-    // Email confirmation is disabled — redirect straight to dashboard
-    window.location.href = '/dashboard'
+    // Show email verification message
+    setEmailSent(true)
+    setLoading(false)
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <MailCheck className="h-10 w-10 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl">Check your email</CardTitle>
+            <CardDescription>
+              We&apos;ve sent a verification link to your email address. Click the link to verify your account and get started.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md bg-green-50 dark:bg-green-950 p-4 text-sm text-green-700 dark:text-green-300 text-center">
+              Didn&apos;t receive the email? Check your spam folder or try signing up again.
+            </div>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Link href="/login" className="text-sm text-primary hover:underline">
+              Back to sign in
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   return (

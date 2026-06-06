@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
     setError(null)
 
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/login`,
     })
 
     if (error) {

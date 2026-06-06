@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,8 +22,16 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'verification_failed') {
+      setError('Email verification failed. Please try again or request a new link.')
+    }
+  }, [searchParams])
 
   const {
     register,
@@ -37,7 +45,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data: authData } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     })
@@ -45,6 +53,8 @@ export default function LoginPage() {
     if (error) {
       if (error.message === 'Invalid login credentials') {
         setError('Invalid email or password. Please try again.')
+      } else if (error.message === 'Email not confirmed') {
+        setError('Please verify your email address before signing in. Check your inbox for the verification link.')
       } else {
         setError(error.message)
       }
