@@ -210,7 +210,7 @@ export default function SubmitQuotationPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vendor *</Label>
-                <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                <Select value={selectedVendor} onValueChange={(val) => setSelectedVendor(val ?? '')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select vendor" />
                   </SelectTrigger>
