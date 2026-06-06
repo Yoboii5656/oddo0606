@@ -2,8 +2,16 @@
 A full-stack procurement and vendor management platform built for organizations to streamline their entire purchasing workflow — from requesting quotations to generating invoices.
 
 **Live Demo:** [https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/](https://oddo0606-ei42lk8kd-manavs-projects-03539f52.vercel.app/)
-(dummy id:admin@gmail.com, dummy password: admin123 (for testing perpous only))
+---
+## Demo Credentials
 
+For testing purposes, use the following demo account:
+
+| Email | Password |
+|--------|----------|
+| `admin@gmail.com` | `admin123` |
+
+> **Warning:** These credentials are for demonstration and testing purposes only. Do not use them in a production environment, and replace them with secure credentials before deployment.
 ---
 
 ## Tech Stack
