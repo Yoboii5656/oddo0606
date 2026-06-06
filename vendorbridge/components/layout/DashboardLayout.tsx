@@ -54,7 +54,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: { user: unknown } | null) => {
       if (!session) {
         setUser(null)
         router.push('/login')

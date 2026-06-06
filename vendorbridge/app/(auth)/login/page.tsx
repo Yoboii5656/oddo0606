@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,16 +22,16 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const errorParam = searchParams.get('error')
+    const params = new URLSearchParams(window.location.search)
+    const errorParam = params.get('error')
     if (errorParam === 'verification_failed') {
       setError('Email verification failed. Please try again or request a new link.')
     }
-  }, [searchParams])
+  }, [])
 
   const {
     register,

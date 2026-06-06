@@ -62,7 +62,7 @@ export default function SubmitQuotationPage() {
       if (itemsData) {
         setRfqItems(itemsData)
         setItemPricing(
-          itemsData.map((item) => ({
+          itemsData.map((item: RFQItem) => ({
             rfq_item_id: item.id,
             product_name: item.product_name,
             quantity: item.quantity,

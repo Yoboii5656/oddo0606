@@ -37,7 +37,7 @@ export function useNotifications(userId: string | undefined) {
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (payload: { new: Notification }) => {
           addNotification(payload.new as Notification)
         }
       )

@@ -1,9 +1,21 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+let client: ReturnType<typeof createBrowserClient> | null = null
 
-export const supabase = createBrowserClient(
-  supabaseUrl!,
-  supabaseKey!
-)
+export function getSupabaseClient() {
+  if (!client) {
+    client = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    )
+  }
+  return client
+}
+
+// For backwards compatibility — creates the client lazily via a Proxy
+export const supabase = new Proxy({} as ReturnType<typeof createBrowserClient>, {
+  get(_target, prop) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getSupabaseClient() as Record<string, unknown>)[prop as string]
+  },
+})
